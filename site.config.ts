@@ -19,7 +19,7 @@ export const siteConfig = {
     { href: "/tools/attendance-calculator", label: "Attendance Tracker" },
     { href: "/tools/question-bank", label: "Question Bank" },
     { href: "/tools/assessment-tracking", label: "Assessment Tracking" },
-    { href: "/coverpage", label: "Cover Page Generator" },
+    { href: "/tools/coverpage", label: "Cover Page Generator" },
   ] as const,
 
   supportLinks: [
