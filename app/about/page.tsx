@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Team from "@/components/team";
 import { ShimmerButton } from "@/components/ui/shimmer-button";
 import { Container } from "@/components/ui/container";
+import { getContributors } from "@/lib/github";
 
 export const metadata: Metadata = {
   title: "About",
@@ -9,10 +10,14 @@ export const metadata: Metadata = {
     "Meet the team behind SEU CampusMate and learn how you can contribute.",
 };
 
-export default function AboutPage() {
+const repo =
+  process.env.NEXT_PUBLIC_GITHUB_REPO ?? "sayeedjoy/seucampusmate-web";
+
+export default async function AboutPage() {
+  const contributors = await getContributors(repo);
   return (
     <>
-      <Team />
+      <Team contributors={contributors} />
       <Container className="flex flex-col items-center justify-center py-12">
         <p className="mb-4 text-center text-muted-foreground">
           This is an open source project — contribute to make it better.
