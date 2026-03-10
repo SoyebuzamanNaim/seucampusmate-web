@@ -12,6 +12,8 @@ import {
   FolderKanban,
   Briefcase,
   Award,
+  Eye,
+  PenLine,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -84,6 +86,7 @@ export default function ResumeBuilder() {
 
   const [scale, setScale] = useState(1);
   const [isWide, setIsWide] = useState(false);
+  const [activeMobileView, setActiveMobileView] = useState<"edit" | "preview">("edit");
 
   /* Horizontal scroll on tabs via mouse wheel + click-drag */
   useEffect(() => {
@@ -151,7 +154,10 @@ export default function ResumeBuilder() {
   useEffect(() => {
     const computeScale = () => {
       const container = previewOuterRef.current;
-      const containerWidth = container?.clientWidth ?? window.innerWidth;
+      const containerWidth =
+        container && container.clientWidth > 0
+          ? container.clientWidth
+          : (window.innerWidth);
       const padding = 16 * 2;
       const available = Math.max(0, containerWidth - padding);
       const s = Math.min(1, available / A4_W_PX_AT_96);
@@ -163,12 +169,19 @@ export default function ResumeBuilder() {
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", computeScale);
     };
-  }, []);
+  }, [activeMobileView, isWide]);
 
   const previewHeightPx = useMemo(() => {
     const scaled = Math.round(A4_H_PX_AT_96 * scale + 24);
     return Math.max(560, scaled);
   }, [scale]);
+
+  /* Scroll to top when switching to preview on mobile */
+  useEffect(() => {
+    if (!isWide && activeMobileView === "preview") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, [activeMobileView, isWide]);
 
   /* ── Shared section content renderer ────────────────────── */
   const renderSectionContent = (section: string) => {
@@ -290,9 +303,9 @@ export default function ResumeBuilder() {
 
   return (
     <TooltipProvider>
-      <div className="mx-auto max-w-400 space-y-4 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+      <div className="mx-auto max-w-400 space-y-4 px-4 py-6 pb-28 sm:px-6 sm:py-8 lg:px-8 lg:pb-8">
         {/* ── Header bar ─────────────────────────────────────── */}
-        <div className="flex flex-col gap-3 rounded-xl border bg-card p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+        <div className="sticky top-4 z-30 flex flex-col gap-3 rounded-xl border bg-card/85 p-4 shadow-sm backdrop-blur-md transition-all sm:flex-row sm:items-center sm:justify-between sm:p-5">
           <div className="min-w-0 space-y-0.5">
             <h1 className="text-xl font-bold text-primary sm:text-2xl">
               Resume Builder
@@ -345,7 +358,7 @@ export default function ResumeBuilder() {
         {/* ── Main 2-panel layout ────────────────────────────── */}
         <div className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-[1fr_auto] lg:items-start lg:gap-6">
           {/* ── Form panel ── */}
-          <div className="order-2 min-w-0 lg:order-1">
+          <div className={`order-2 min-w-0 lg:order-1 ${!isWide && activeMobileView !== "edit" ? "hidden" : ""}`}>
             {isWide ? (
               /* ── Desktop: Tabs navigation ── */
               <div
@@ -416,9 +429,10 @@ export default function ResumeBuilder() {
           {/* ── Preview panel ── */}
           <div
             ref={previewOuterRef}
-            className="order-1 min-w-0 overflow-hidden rounded-xl border bg-muted/40 p-2 sm:p-3 lg:order-2 lg:w-[min(100%,840px)]"
+            className={`order-1 min-w-0 overflow-hidden rounded-xl border bg-muted/40 p-2 sm:p-3 lg:order-2 lg:w-[min(100%,840px)] ${!isWide && activeMobileView !== "preview" ? "hidden" : ""}`}
+            style={!isWide ? { height: previewHeightPx, maxHeight: previewHeightPx, marginBottom: "80px" } : {}}
           >
-            <div className="flex justify-center">
+            <div className="flex justify-center h-full">
               <div
                 style={{
                   transform: `scale(${scale})`,
@@ -432,6 +446,34 @@ export default function ResumeBuilder() {
             </div>
           </div>
         </div>
+
+        {/* ── Mobile Bottom Navigation ───────────────────────── */}
+        {!isWide && (
+          <div className="fixed bottom-0 left-0 right-0 z-40 border-t bg-card/90 p-4 pb-safe backdrop-blur-xl lg:hidden">
+            <div className="mx-auto flex max-w-sm items-center justify-between gap-4 rounded-full bg-muted/60 p-1.5 shadow-sm">
+              <button
+                onClick={() => setActiveMobileView("edit")}
+                className={`flex flex-1 items-center justify-center gap-2 rounded-full py-2.5 text-sm font-semibold transition-all duration-300 ${activeMobileView === "edit"
+                  ? "bg-background text-foreground shadow-sm ring-1 ring-border"
+                  : "text-muted-foreground hover:text-foreground"
+                  }`}
+              >
+                <PenLine className="h-4 w-4" />
+                Edit
+              </button>
+              <button
+                onClick={() => setActiveMobileView("preview")}
+                className={`flex flex-1 items-center justify-center gap-2 rounded-full py-2.5 text-sm font-semibold transition-all duration-300 ${activeMobileView === "preview"
+                  ? "bg-primary text-primary-foreground shadow-md"
+                  : "text-muted-foreground hover:text-foreground"
+                  }`}
+              >
+                <Eye className="h-4 w-4" />
+                Preview
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* ── Off-screen print root for PDF generation ──────── */}
         <div
