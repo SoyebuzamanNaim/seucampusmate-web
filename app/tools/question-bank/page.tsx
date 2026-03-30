@@ -1,40 +1,43 @@
-'use client';
+"use client";
 
-import { Container } from '@/components/ui/container';
-import Image from 'next/image';
+import { Container } from "@/components/ui/container";
+import Image from "next/image";
 
 export default function QuestionBankPage() {
-    return (
-      <div className="min-h-screen bg-background pt-12">
-        <Container className="py-8 md:py-12 lg:py-16">
-          <div className="max-w-2xl mx-auto">
-            {/* Mobile App Call to Action */}
-            <div className="text-center">
-              <h2 className="text-xl md:text-2xl lg:text-3xl font-bold text-foreground mb-4 md:mb-6">
-                Mobile App Exclusive
-              </h2>
-              <p className="text-muted-foreground text-base md:text-lg mb-8 md:mb-12 max-w-md mx-auto leading-relaxed">
-                This feature is available exclusively in our mobile app.
-                Download now to access the complete question bank with previous
-                years&apos; papers and practice tests.
-              </p>
+  return (
+    <div className="min-h-screen bg-background pt-12">
+      <Container className="py-8 md:py-12 lg:py-16">
+        <div className="max-w-2xl mx-auto">
+          {/* Mobile App Call to Action */}
+          <div className="text-center">
+            <h2 className="text-xl md:text-2xl lg:text-3xl font-bold text-foreground mb-4 md:mb-6">
+              Mobile App Exclusive
+            </h2>
+            <p className="text-muted-foreground text-base md:text-lg mb-8 md:mb-12 max-w-md mx-auto leading-relaxed">
+              This feature is available exclusively in our mobile app. Download
+              now to access the complete question bank with previous years&apos;
+              papers and practice tests.
+            </p>
 
-              {/* Download Button */}
-              <a
-                href="https://play.google.com/store/apps/details?id=com.apppulse.seu&pcampaignid=web_share"
-                className="inline-block transition-transform duration-300 hover:scale-105 cursor-pointer"
-              >
-                <Image
-                  src="/google-play.webp"
-                  alt="Get it on Google Play"
-                  width={200}
-                  height={60}
-                  className="object-contain"
-                />
-              </a>
-            </div>
+            {/* Download Button */}
+            <a
+              href="https://play.google.com/store/apps/details?id=com.apppulse.seu&hl=en"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Download CampusMate on Google Play"
+              className="inline-block transition-transform duration-300 hover:scale-105 cursor-pointer"
+            >
+              <Image
+                src="/google-play.webp"
+                alt="Get it on Google Play"
+                width={200}
+                height={60}
+                className="object-contain"
+              />
+            </a>
           </div>
-        </Container>
-      </div>
-    );
+        </div>
+      </Container>
+    </div>
+  );
 }
