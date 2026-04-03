@@ -1,14 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { parse } from 'csv-parse/sync';
-import { ExamRow, ExamResult, ExamApiResponse, courseCodesMatch } from '@/lib/exam-utils';
+import { db } from '@/lib/db';
+import { examSchedules } from '@/lib/db/schema';
+import { sql } from 'drizzle-orm';
+import { ExamResult, ExamApiResponse, normalizeCourseCode } from '@/lib/exam-utils';
 
-// Cache the response for 5 minutes to ensure fresher data
-export const revalidate = 300;
+export const dynamic = 'force-dynamic';
+
+function rowToResult(row: typeof examSchedules.$inferSelect): ExamResult {
+  return {
+    program: row.program,
+    slot: row.slot,
+    date: row.date,
+    startTime: row.startTime,
+    endTime: row.endTime,
+    courseCode: row.courseCode,
+    courseTitle: row.courseTitle,
+    faculty: row.faculty,
+  };
+}
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const courseCode = searchParams.get('code');
-  const codes = searchParams.get('codes'); // Support multiple codes
+  const codes = searchParams.get('codes');
 
   if (!courseCode && !codes) {
     return NextResponse.json(
@@ -18,90 +32,47 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Get the CSV URL from environment variables
-    const csvUrl = process.env.EXAMS_CSV_URL;
-    if (!csvUrl) {
-      return NextResponse.json(
-        { error: 'CSV URL not configured' },
-        { status: 500 }
-      );
-    }
-
-    // Fetch the CSV data
-    const response = await fetch(csvUrl, {
-      next: { revalidate: 300 } // Cache for 5 minutes
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch CSV: ${response.status}`);
-    }
-
-    const csvText = await response.text();
-
-    // Parse the CSV
-    const records: ExamRow[] = parse(csvText, {
-      columns: true,
-      trim: true,
-      skip_empty_lines: true
-    });
-
     if (codes) {
-      // Handle multiple course codes
-      const codeList = codes.split(',').map(code => code.trim()).filter(code => code.length > 0);
+      const codeList = codes.split(',').map(c => c.trim()).filter(Boolean);
       const results: { [key: string]: ExamApiResponse } = {};
 
-      codeList.forEach(code => {
-        const matchingRecords = records.filter(record =>
-          courseCodesMatch(record['Course Code'], code)
-        );
+      for (const code of codeList) {
+        const normalized = normalizeCourseCode(code);
+        const rows = await db
+          .select()
+          .from(examSchedules)
+          .where(
+            sql`lower(replace(replace(${examSchedules.courseCode}, '-', ''), ' ', '')) = ${normalized}`
+          );
 
-        const examResults: ExamResult[] = matchingRecords.map(record => ({
-          program: record.Program,
-          slot: record.Slot,
-          date: record.Date,
-          startTime: record['Start Time'],
-          endTime: record['End Time'],
-          courseCode: record['Course Code'],
-          courseTitle: record['Course Title'],
-          faculty: record.Faculty
-        }));
-
+        const examResults = rows.map(rowToResult);
         results[code] = {
           query: code.toLowerCase(),
           count: examResults.length,
-          results: examResults
+          results: examResults,
         };
-      });
+      }
 
       return NextResponse.json(results);
     } else {
-      // Handle single course code (backward compatibility)
-      const matchingRecords = records.filter(record =>
-        courseCodesMatch(record['Course Code'], courseCode!)
-      );
+      const normalized = normalizeCourseCode(courseCode!);
+      const rows = await db
+        .select()
+        .from(examSchedules)
+        .where(
+          sql`lower(replace(replace(${examSchedules.courseCode}, '-', ''), ' ', '')) = ${normalized}`
+        );
 
-      const results: ExamResult[] = matchingRecords.map(record => ({
-        program: record.Program,
-        slot: record.Slot,
-        date: record.Date,
-        startTime: record['Start Time'],
-        endTime: record['End Time'],
-        courseCode: record['Course Code'],
-        courseTitle: record['Course Title'],
-        faculty: record.Faculty
-      }));
-
+      const examResults = rows.map(rowToResult);
       const apiResponse: ExamApiResponse = {
         query: courseCode!.toLowerCase(),
-        count: results.length,
-        results
+        count: examResults.length,
+        results: examResults,
       };
-
       return NextResponse.json(apiResponse);
     }
-
   } catch (error) {
-    console.error('Error fetching exam data:', error);
+    console.error('Error querying exam data:', error);
     return NextResponse.json(
       { error: 'Failed to fetch exam data' },
       { status: 502 }

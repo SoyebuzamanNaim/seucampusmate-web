@@ -45,3 +45,4 @@ next-env.d.ts
 *.iws
 *.iml
 *.ipr
+/.claude/settings.local.json

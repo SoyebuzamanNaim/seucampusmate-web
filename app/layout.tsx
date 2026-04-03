@@ -6,6 +6,7 @@ import { Toaster } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Header } from "@/components/navbar/header";
 import { Footer } from "@/components/footer";
+import { headers } from "next/headers";
 import "./globals.css";
 
 const inter = Inter({
@@ -39,11 +40,15 @@ export const metadata: Metadata = {
     "Track attendance, calculate CGPA, manage routines, and stay connected with your SEU community. Everything you need for academic success.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const headersList = await headers();
+  const pathname = headersList.get('x-pathname') ?? '';
+  const isAdmin = pathname.startsWith('/admin');
+
   return (
     <html lang="en" className={inter.variable} suppressHydrationWarning>
       <head />
@@ -59,9 +64,11 @@ export default function RootLayout({
         >
           <TooltipProvider>
             <div className="min-h-screen flex flex-col">
-              <Header />
-              <main className="flex-1 pt-14 md:pt-16">{children}</main>
-              <Footer />
+              {!isAdmin && <Header />}
+              <main className={`flex-1 ${!isAdmin ? 'pt-14 md:pt-16' : ''}`}>
+                {children}
+              </main>
+              {!isAdmin && <Footer />}
             </div>
             <Toaster richColors position="top-right" />
           </TooltipProvider>
